@@ -1,4 +1,5 @@
 import os
+from pydoc import cli
 import openai
 from openai import OpenAI, AzureOpenAI
 from flask import Flask, render_template, request, jsonify
@@ -45,7 +46,7 @@ def get_response():
         message = request.args.get("message")
 
     message=json.loads(message)
-    msg_query = [{ "role": "system","content": "Given the following SQL tables, your job is to write queries given a users request.\n  \n  create table mood_table(\n  sno int not null,\n  name varchar(20),\n  mood varchar(15),\n  primary key (sno)\n  );"}]
+    msg_query = [{ "role": "system","content": "Given the following SQL tables, your job is to write queries given a users request.\n  \n  create table mood_freq_table(\n  sno int not null,\n  name varchar(20),\n  mood varchar(15),\n  frequency int,\n  primary key (sno)\n  );"}]
     msg_query.append({"role":"user","content":message['message']})
 
     response="hehe"
@@ -65,7 +66,7 @@ def get_response():
     
     x = [i for i in mycursor][0][0]
 
-    #UNCOMMENT THESE LINES TO VIEW THE SQL QUERY AND THE MOOD RETURNED
+    #UNCOMMENT THESE LINES TO VIEW THE SQL QUERY AND THE RESPONSE RETURNED
     #print(response_content.split("```sql")[1][:-3])
     #print(x)
 
@@ -86,6 +87,30 @@ def get_response():
         max_tokens=64,
         top_p=1
     )
+
+    #creating the assistant and using code interpreter
+    assistant_graph = client.beta.assistants.create(
+        instructions="You must generate a relevant bar graph using the inputs",
+        model=model,
+        tools=[{"type":"code_interpreter"}]
+    )
+
+    thread = client.beta.threads.create()
+
+    message = client.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        text="I want to see a bar graph generated using the following information.  \n" + x
+    )
+
+
+    run = client.beta.threads.runs.create(
+        thread_id=thread.id,
+        assistant_id=assistant_graph.id,
+        instructions="You must generate a relevant bar graph using the inputs"
+    )
+
+
 
     response_content_mood = response_mood.choices[0].message.content
 
