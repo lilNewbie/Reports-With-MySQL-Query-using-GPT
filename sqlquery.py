@@ -9,7 +9,6 @@ import requests
 
 st.title("Aloo_GPT")
 
-client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 GPT_MODEL = 'gpt-3.5-turbo-0613'
 
 
