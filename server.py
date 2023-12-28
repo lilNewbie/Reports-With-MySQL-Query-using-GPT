@@ -1,3 +1,5 @@
+from concurrent.futures import thread
+from email.mime import image
 import os
 from pydoc import cli
 import re
@@ -8,6 +10,7 @@ import json
 import requests
 import mysql.connector
 from secrets2 import get_keys
+import time
 
 # load env vars from .env file
 openai_api_key, azure_api_key, azure_api_version, db_pwd, azure_ep = get_keys()
@@ -75,6 +78,7 @@ def get_response():
     y = [list(i) for i in x][0:]
     y = "  \n".join([str(i) for i in y])
     print(y)
+
     msg_mood = [{
         "role":"system",
         "content":"Give an answer to the prompt in a sentence."
@@ -93,56 +97,58 @@ def get_response():
         top_p=1
     )
 
-    #creating the files obj
-    file1 = client.files.create(
-        file=open('generate.txt','rb'),
-        purpose='assistants'
-    )
-    
-
     #creating the assistant and using code interpreter
-    assistant_graph = client.beta.assistants.create(
-        name="Data visualizer",
-        instructions="You must generate a relevant bar graph using the inputs",
-        model=model,
-        tools=[{"type":"code_interpreter"}]
-    )
 
-    assistant_file = client.beta.assistants.files.create(
-        assistant_id=assistant_graph.id,
-        file_id=file1.id
-    )
-
-
+    image_path = "./charts/chart"
+    s = image_path
+    count = 0
+    while True:
+        if os.path.exists(s + '.png'):
+            count+=1
+            s += count
+        else:
+            break
+    image_path = s + '.png'
+    
+    chart_prompt = "Please generate a chart using following data: \n" + y
+    
     thread = client.beta.threads.create(
-        messages=[{
-            "role":"user",
-            "content":"Create graphs and store them in images for the given inputs  \n",
-        }]
-    )
-
-    message = client.beta.threads.messages.create(
-        thread_id=thread.id,
-        role="user",
-        content="I want to see a bar graph generated using the following information.  \n" + y
-    )
-
+                messages=[
+                    {
+                        "role": "user",
+                        "content": chart_prompt,
+                    }
+                ]
+            )
 
     run = client.beta.threads.runs.create(
-        thread_id=thread.id,
-        assistant_id=assistant_graph.id,
-        instructions="You must generate a relevant bar graph using the inputs"
-    )
+                assistant_id="asst_SKv2djMWyDKQgM7yASe3S88g", 
+                thread_id=thread.id)
 
-    returned_msg = client.beta.threads.messages.retrieve(
-            thread_id=thread.id,
-            message_id=message.id
-        )
+    while True:
+        run = client.beta.threads.runs.retrieve(run_id=run.id, thread_id=thread.id)
+        if run.status == "completed":
+            messages = client.beta.threads.messages.list(thread_id=thread.id)
 
-    print(returned_msg)
+            image_file_id = messages.data[0].content[0].image_file.file_id
+            content_description = messages.data[0].content[1].text.value
+
+            print(image_file_id)
+            raw_response = client.files.with_raw_response.content(file_id=image_file_id)
+
+            client.files.delete(image_file_id)
+            with open(image_path, "wb") as f:
+                f.write(raw_response.content)
+                return (content_description)
+
+        elif run.status == "failed":
+            print("Sorry, something went wrong. Please try again.")
+            break
+
+        time.sleep(1)
 
     response_content_mood = response_mood.choices[0].message.content
-
+    
     return response_content_mood
 
 if __name__ == "__main__":

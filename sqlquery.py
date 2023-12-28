@@ -52,6 +52,7 @@ if prompt := st.chat_input('Hello! What can I help you with?'):
         message_placeholder = st.empty()
         full_response = chat_completion_request([st.session_state.messages[-1]])
         message_placeholder.markdown(full_response)
+        st.image(image='chart.png',caption='Chart generated')
 
     st.session_state.messages.append({'role':'assistant','content':full_response})
     
