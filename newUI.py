@@ -9,7 +9,7 @@ import requests
 from mailjet_rest import Client
 from secrets2 import get_keys
 
-st.sidebar.header('Required API Keys')
+# st.sidebar.header('Required API Keys')
 
 # Add input widgets to the sidebar for three strings
 # mailjet_api_key = st.sidebar.text_input("Enter MailJet API's public key", '', type='password')
@@ -28,34 +28,77 @@ openai_secret_key, mailjet_api_key, mailjet_api_secret, db_pwd = get_keys()
 
 
 st.title("GPT_Mail")
-st.markdown("Can be used only after the API Keys have been entered")
+# st.markdown("Can be used only after the API Keys have been entered")
 
 mailjet = Client(auth=(mailjet_api_key, mailjet_api_secret))
 client = OpenAI(api_key=openai_secret_key)
 GPT_MODEL = 'gpt-3.5-turbo-0613'
 
 
-def chat_completion_request(messages, tools=None, tool_choice=None, model=GPT_MODEL):
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + st.secrets['OPENAI_API_KEY'],
-    }
-    json_data = {"model": model, "messages": messages}
-    if tools is not None:
-        json_data.update({"tools": tools})
-    if tool_choice is not None:
-        json_data.update({"tool_choice": tool_choice})
-    try:
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers=headers,
-            json=json_data,
-        )
-        return response
-    except Exception as e:
-        print("Unable to generate ChatCompletion response")
-        print(f"Exception: {e}")
-        return e
+def sql_query_request(messages, message_placeholder):
+    prompt = messages
+    
+    thread = client.beta.threads.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "Use the following table - \n  \n  create table mood_freq_table(\n  sno int not null,\n  name varchar(20),\n  mood varchar(15),\n  frequency int,\n  primary key (sno)\n  );" + prompt,
+                    }
+                ]
+            )
+
+    run = client.beta.threads.runs.create(
+                assistant_id="asst_fungujY0Z2a2jk2Puoq5DCVo", 
+                thread_id=thread.id,
+                instructions=""
+                )
+
+    while True:
+        run = client.beta.threads.runs.retrieve(run_id=run.id, thread_id=thread.id)
+        if run.status == "completed":
+            messages = client.beta.threads.messages.list(thread_id=thread.id)
+            print(messages)
+            # image_file_id = messages.data[0].content[0].image_file.file_id
+            content_description = messages.data[0].content[0].text.value
+            message_placeholder.markdown(content_description)
+            # print(image_file_id)
+            # raw_response = client.files.with_raw_response.content(file_id=image_file_id)
+
+            # client.files.delete(image_file_id)
+            # with open(content_description, "wb") as f:
+            #     f.write(raw_response.content)
+            #     print(content_description)
+            return (content_description)
+
+        elif run.status == "failed":
+            print("Sorry, something went wrong. Please try again.")
+            break
+
+        time.sleep(1)
+
+
+
+# def chat_completion_request(messages, tools=None, tool_choice=None, model=GPT_MODEL):
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Authorization": "Bearer " + st.secrets['OPENAI_API_KEY'],
+#     }
+#     json_data = {"model": model, "messages": messages}
+#     if tools is not None:
+#         json_data.update({"tools": tools})
+#     if tool_choice is not None:
+#         json_data.update({"tool_choice": tool_choice})
+#     try:
+#         response = requests.post(
+#             "https://api.openai.com/v1/chat/completions",
+#             headers=headers,
+#             json=json_data,
+#         )
+#         return response
+#     except Exception as e:
+#         print("Unable to generate ChatCompletion response")
+#         print(f"Exception: {e}")
+#         return e
 
 tools = [
     {
@@ -85,29 +128,33 @@ tools = [
                     "Recipients": {
                         "type": "string",
                         "description": "The recipients' email addresses",
+                    },
+                    "Attachments": {
+                        "type":"object",
+                        "description":"A list containing dictionaries for each image. Each dictionary has 'Content-type', 'Filename' and 'content' as the keys. 'Content-type' takes the value 'image/png', 'Filename' takes the name of the file and 'content' takes the Base64 encoded form of the image. "
                     }
 
                 },
-                "required": ["FromEmail", "FromName", "Subject", "Text-part", "Recipients"],
+                "required": ["FromEmail", "FromName", "Subject", "Text-part", "Recipients","Attachments"],
             },
         }
     },]
 
 
-def converter(em):
-    em_dict = {}
-    names = ['FromEmail','FromName','Subject','Text-part','Recipients']
-    for i in range(0,len(em)-1):
-        s = em[i].split(':')
-        key = names[i]
-        value = s[1][2:-2]
-        em_dict[key] = value
+# def converter(em):
+#     em_dict = {}
+#     names = ['FromEmail','FromName','Subject','Text-part','Recipients']
+#     for i in range(0,len(em)-1):
+#         s = em[i].split(':')
+#         key = names[i]
+#         value = s[1][2:-2]
+#         em_dict[key] = value
 
-    s = em[len(em)-1].split(':')
-    key = names[len(em)-1]
-    value = s[1][2:-1]
-    em_dict[key] = [{'Email':value}]
-    return em_dict
+#     s = em[len(em)-1].split(':')
+#     key = names[len(em)-1]
+#     value = s[1][2:-1]
+#     em_dict[key] = [{'Email':value}]
+#     return em_dict
 
 #code to load previous messages if any
 if 'openai_model' not in st.session_state:
@@ -119,31 +166,32 @@ if 'messages' not in st.session_state:
 
 for message in st.session_state.messages:
     with st.chat_message(message['role']):
-        cont = message['content']
-        if message['role']=="assistant":
-            cont = 'Email has been sent from '+ cont['FromEmail'] + ' to ' + cont['Recipients'][0]['Email']  + '  \n' + 'Check inbox.  \n' + 'Content sent:  \n'+ cont['Text-part']
-        st.markdown(cont)
+        # cont = message['content']
+        # if message['role']=="assistant":
+            # cont = 'Email has been sent from '+ cont['FromEmail'] + ' to ' + cont['Recipients'][0]['Email']  + '  \n' + 'Check inbox.  \n' + 'Content sent:  \n'+ cont['Text-part']
+        st.markdown(message['content'])
 
 
-if prompt := st.chat_input('"Send an email from x to y with the subject as test and content explaining the same"'):
+if prompt := st.chat_input('Type in the data required'):
     st.session_state.messages.append({'role':'user','content':prompt})
     with st.chat_message('user'):
         st.markdown(prompt)
     em = ""      
     with st.chat_message('assistant'):
         message_placeholder = st.empty()
-        full_response = chat_completion_request([st.session_state.messages[-1]], tools=tools)
-        email_format = full_response.json()['choices'][0]['message']['tool_calls'][0]['function']['arguments']
+        full_response = sql_query_request(prompt, message_placeholder)
 
-        em = email_format.split('\n')
-        em = em[1:-1]
-        em = converter(em)
+        # email_format = full_response.json()['choices'][0]['message']['tool_calls'][0]['function']['arguments']
 
-        result = mailjet.send.create(data=em)
+        # em = email_format.split('\n')
+        # em = em[1:-1]
+        # em = converter(em)
+
+        # result = mailjet.send.create(data=em)
         
         
-        cont = 'Email has been sent from '+ em['FromEmail'] + ' to ' + em['Recipients'][0]['Email']  + '  \n' + 'Check inbox.  \n' + 'Content sent:  \n'+ em['Text-part']
+        # cont = 'Email has been sent from '+ em['FromEmail'] + ' to ' + em['Recipients'][0]['Email']  + '  \n' + 'Check inbox.  \n' + 'Content sent:  \n'+ em['Text-part']
         
-        message_placeholder.markdown(cont)
+        message_placeholder.markdown(full_response)
 
     st.session_state.messages.append({'role':'assistant','content':em})

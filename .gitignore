@@ -4,3 +4,16 @@
 
 /secrets1.py
 /secrets2.py
+.vs/ProjectSettings.json
+.vs/slnx.sqlite
+.vs/VSWorkspaceState.json
+.vs/Task-4/FileContentIndex/13d2c61f-6aaf-4eaf-8fdc-f4218147785d.vsidx
+.vs/Task-4/FileContentIndex/18daecd3-476e-4e35-8572-d1cb570cc858.vsidx
+.vs/Task-4/FileContentIndex/227fa798-7488-46a9-9bdf-2fa12b044588.vsidx
+.vs/Task-4/FileContentIndex/f246172f-80cc-498d-bb10-062355f130a3.vsidx
+.vs/Task-4/FileContentIndex/read.lock
+.vs/Task-4/v17/.wsuo
+__pycache__/secrets1.cpython-310.pyc
+__pycache__/secrets2.cpython-310.pyc
+__pycache__/server.cpython-310.pyc
+__pycache__/server2.cpython-310.pyc
