@@ -52,7 +52,7 @@ def get_sql_response():
     y = "  \n".join([str(i) for i in y])
     print(y)
 
-    return " ".join(x)
+    return y
     # msg_mood = [{
     #     "role":"system",
     #     "content":"Give an answer to the prompt in a sentence."

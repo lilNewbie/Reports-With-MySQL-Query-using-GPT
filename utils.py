@@ -32,15 +32,16 @@ def send_email(prompt):
 
 def create_thread():
     print("Creating a thread for new convo")
-    thread = client.beta.threads.messages.create()
+    thread = client.beta.threads.create()
     print(f'Thread created. ID - {thread.id}')
     return thread
 
 def send_message_and_run_assistant(thread, user_message):
-    print('User message added tp thread: '+user_message)
+    print('User message added to thread: '+user_message)
     message = client.beta.threads.messages.create(
         thread_id=thread.id,
-        assistant_id='asst_eujY4eWEatR82O1aPaw3tzZ5'
+        role='user',
+        content=user_message
     )
     print('Running the assistant')
     run = client.beta.threads.runs.create(
@@ -64,7 +65,7 @@ def poll_run_status(thread, run):
 def handle_required_actions(thread, run):
     print('Assistant req function calls')
     required_actions = run.required_action.submit_tool_outputs
-    with open('/jsons/required_actions.json','w') as f:
+    with open('jsons/required_actions.json','w') as f:
             required_actions_json = required_actions.model_dump()
             json.dump(required_actions_json,f,indent=4)
     tool_outputs = []
@@ -96,11 +97,11 @@ def display_final_response(thread,run):
     messages = client.beta.threads.messages.list(thread_id=thread.id)
     run_steps = client.beta.threads.runs.steps.list(thread_id=thread.id,run_id=run.id)
 
-    with open('/jsons/run_steps.json','w') as f:
+    with open('jsons/run_steps.json','w') as f:
         run_steps_json = run_steps.model_dump()
         json.dump(run_steps_json,f,indent=4)
 
-    with open('/jsons/messages.json','w') as f:
+    with open('jsons/messages.json','w') as f:
         messages_json = messages.model_dump()
         json.dump(messages_json,f,indent=4)
 
