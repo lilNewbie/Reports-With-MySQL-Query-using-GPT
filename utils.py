@@ -125,7 +125,11 @@ def display_final_response(thread,run):
                     text_value = content_part.text.value
                     for index, annotation in enumerate(annotations):
                         text_value = text_value.replace(annotation.text, f' [{index}]')
-                        if (file_path := getattr(annotation, 'file_path',None)):
+                        if (file_citation := getattr(annotation, 'file_citation',None)):
+                            cited_file = client.files.retrieve(file_citation.file_id)
+                            citations.append(f'[{index}] {file_citation.quote} from {cited_file.filename}')
+
+                        elif (file_path := getattr(annotation, 'file_path',None)):
                             cited_file = client.files.retrieve(file_path.file_id)
                             image_file_id = cited_file.id
                             image_data : bytes = client.files.with_raw_response.content(image_file_id).content
@@ -137,7 +141,7 @@ def display_final_response(thread,run):
                     image_file_id = content_part.image_file.file_id
                     image_data : bytes = client.files.with_raw_response.content(image_file_id).content
                     image = Image.open(io.BytesIO(image_data))
-                    image.save(f'chart{image_counter}.png')
+                    image.save(f'charts/chart{image_counter}.png')
                     image_counter += 1
 
             updated_messages.append(message)
