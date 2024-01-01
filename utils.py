@@ -1,10 +1,7 @@
 import email
 from urllib import response
-import streamlit as st
-import random 
 import time
 import json
-import openai
 from openai import OpenAI
 import requests
 from mailjet_rest import Client
@@ -145,6 +142,18 @@ def display_final_response(thread,run):
             updated_messages.append(message)
     return updated_messages
     
+if __name__=="__main__":
+    thread = create_thread()
+    while True:
+        user_message = input('Message pls: ')
+        if user_message.lower == 'quit':
+            break
+        
+        run = send_message_and_run_assistant(thread,user_message)
+        run = poll_run_status(thread,run)
+
+        resp = display_final_response(thread,run)
+
 
 
 
