@@ -10,9 +10,12 @@ from PIL import Image
 import io
 import os
 import pybase64
+from mailjet_rest import Client
 
 openai_secret_key, MAILJET_API_KEY, MAILJET_API_SECRET, db_pwd = get_keys()
 client = OpenAI(api_key=openai_secret_key)
+mailjet = Client(auth=(MAILJET_API_KEY, MAILJET_API_SECRET))
+
 
 tools = [{
     "type":"function",
@@ -92,12 +95,13 @@ def send_sql_query(sql_query):
         print(response.text)
         return response.text
     except Exception as e:
-        print("Unable to generate ChatCompletion response")
+        print("Unable to generate response")
         print(f"Exception: {e}")
         return e
 
 def send_email(prompt):
-    print(prompt)
+    print(prompt.keys())
+    res = mailjet.send.create(data=prompt)
     return('Email has been sent')
 
 def create_assistant():
@@ -200,7 +204,6 @@ def load_imgs(path):
     for i in files:
         with open(f"charts/{i}", "rb") as img_file:
             file_list[i] = pybase64.b64encode(img_file.read()).decode('utf-8')
-    print(file_list)
     return file_list
 
 
@@ -262,6 +265,7 @@ def display_final_response(thread,run,prompt,if_send_email):
     if if_send_email:
         imgs = load_imgs('charts')
         prompt['Attachments'] = []
+        prompt['Recipients'] = [{"Email":prompt['Recipients']}]
         for i in imgs.keys():
             img_dict = {
                 'Content_type':'image/png',
