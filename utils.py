@@ -9,6 +9,7 @@ from secrets2 import get_keys
 from PIL import Image
 import io
 import os
+import pybase64
 
 openai_secret_key, MAILJET_API_KEY, MAILJET_API_SECRET, db_pwd = get_keys()
 client = OpenAI(api_key=openai_secret_key)
@@ -94,7 +95,7 @@ def send_sql_query(sql_query):
         print("Unable to generate ChatCompletion response")
         print(f"Exception: {e}")
         return e
-    
+
 def send_email(prompt):
     print(prompt)
     return('Email has been sent')
@@ -107,7 +108,7 @@ def create_assistant():
     else:
         assistant = client.beta.assistants.create(
             name="Data Plotter",
-            instructions="You are a data visualizer. Your role is to call functions to generate sql queries for the given schema - '\n  \n  create table mood_freq_table(\n  sno int not null,\n  name varchar(20),\n  mood varchar(15),\n  frequency int,\n  primary key (sno)\n  ); ' and to retrieve data from it and plot graphs and charts and save the images as png files.  If specified, send emails to the specified email with images of the charts plotted.",
+            instructions="You are a data visualizer. Your role is to call functions to generate sql queries for the given schema - '\n  \n  create table mood_freq_table(\n  sno int not null,\n  name varchar(20),\n  mood varchar(15),\n  frequency int,\n  primary key (sno)\n  ); ' and to retrieve data from it and plot graphs and charts and save the images as png files.  You can send an email containing the images only if requested by the user.",
             model='gpt-3.5-turbo-1106',
             tools=tools
         )
@@ -118,15 +119,6 @@ def create_assistant():
     print(f'Assistant with id {assistant_id} retrieved.')
 
     return assistant
-
-
-
-
-
-
-
-
-
 
 
 
@@ -159,11 +151,11 @@ def poll_run_status(thread, run):
         if run.status in ['completed','failed','cancelled']:
             break
         elif run.status == 'requires_action':
-            handle_required_actions(thread, run)
+            prompt, if_send_email = handle_required_actions(thread, run)
         else:
             print('waiting')
             time.sleep(3)
-    return run
+    return run, prompt, if_send_email
 
 def handle_required_actions(thread, run):
     print('Assistant req function calls')
@@ -173,6 +165,9 @@ def handle_required_actions(thread, run):
             json.dump(required_actions_json,f,indent=4)
     tool_outputs = []
 
+    prompt = ""
+    if_send_email = False
+
     for action in required_actions.tool_calls:
         func_name = action.function.name
         arguments = json.loads(action.function.arguments)
@@ -180,7 +175,8 @@ def handle_required_actions(thread, run):
             output = send_sql_query(arguments['sql_query'])
         elif func_name=="send_email":
             prompt = arguments
-            output = send_email(prompt)
+            if_send_email = True
+            output = 'Email sent'
         else:
             raise ValueError(f'Unkown function {func_name}')
         print(f'{func_name} has been called with arguments: {arguments}')
@@ -195,8 +191,21 @@ def handle_required_actions(thread, run):
         run_id=run.id,
         tool_outputs=tool_outputs
     )
+    return prompt, if_send_email
 
-def display_final_response(thread,run):
+
+def load_imgs(path):
+    files = os.listdir(path)
+    file_list = {}
+    for i in files:
+        with open(f"charts/{i}", "rb") as img_file:
+            file_list[i] = pybase64.b64encode(img_file.read()).decode('utf-8')
+    print(file_list)
+    return file_list
+
+
+
+def display_final_response(thread,run,prompt,if_send_email):
     messages = client.beta.threads.messages.list(thread_id=thread.id)
     run_steps = client.beta.threads.runs.steps.list(thread_id=thread.id,run_id=run.id)
 
@@ -224,7 +233,7 @@ def display_final_response(thread,run):
             citations = []
             for content_part in message.content:
                 if content_part.type == 'text':
-                    annotations = content_part.text.value
+                    annotations = content_part.text.annotations
                     text_value = content_part.text.value
                     if annotations!=[]:
                         for index, annotation in enumerate(annotations):
@@ -238,7 +247,7 @@ def display_final_response(thread,run):
                                 image_file_id = cited_file.id
                                 image_data : bytes = client.files.with_raw_response.content(image_file_id).content
                                 image = Image.open(io.BytesIO(image_data))
-                                image.save(f'chart{image_counter}.png')
+                                image.save(f'charts/chart{image_counter}.png')
                                 image_counter += 1
                 
                 elif content_part.type == 'image_file':
@@ -249,6 +258,18 @@ def display_final_response(thread,run):
                     image_counter += 1
 
             updated_messages.append(message)
+
+    if if_send_email:
+        imgs = load_imgs('charts')
+        prompt['Attachments'] = []
+        for i in imgs.keys():
+            img_dict = {
+                'Content_type':'image/png',
+                'Filename':i,
+                'content':imgs[i]
+            }
+            prompt['Attachments'].append(img_dict)
+        print(send_email(prompt))
     return updated_messages
     
 if __name__=="__main__":
@@ -259,9 +280,9 @@ if __name__=="__main__":
             break
         assistant = create_assistant()
         run = send_message_and_run_assistant(thread,assistant,user_message)
-        run = poll_run_status(thread,run)
+        run, prompt, if_send_email = poll_run_status(thread,run)
 
-        resp = display_final_response(thread,run)
+        resp = display_final_response(thread,run,prompt,if_send_email)
 
 
 
