@@ -11,6 +11,22 @@ import io
 import os
 import pybase64
 from mailjet_rest import Client
+import streamlit as st
+
+# st.sidebar.header('Required API Keys')
+
+# Add input widgets to the sidebar for three strings
+# mailjet_api_key = st.sidebar.text_input("Enter MailJet API's public key", '', type='password')
+# mailjet_api_secret = st.sidebar.text_input("Enter MailJet API's private key", '', type='password')
+# openai_secret_key = st.sidebar.text_input("Enter OpenAI's API key", '', type='password')
+
+#st.sidebar.markdown('Sample Prompt')
+#st.sidebar.markdown('"Send an email from x to y with the subject as test and content of the email explaining the same"')
+
+#Send an email from alan.learning.acc@gmail.com to alan.learning.acc2@gmail.com with the Subject as "The Fall of Rome" and the Content explaining it in two sentences. Sign off as "The Emperor".
+
+#mailjet_api_key = st.secrets['MAILJET_API_KEY']
+#mailjet_api_secret = st.secrets['MAILJET_API_SECRET']
 
 openai_secret_key, MAILJET_API_KEY, MAILJET_API_SECRET, db_pwd = get_keys()
 client = OpenAI(api_key=openai_secret_key)
@@ -275,18 +291,32 @@ def display_final_response(thread,run,prompt,if_send_email):
             prompt['Attachments'].append(img_dict)
         print(send_email(prompt))
     return updated_messages
-    
-if __name__=="__main__":
-    thread = create_thread()
-    while True:
-        user_message = input('Message pls: ')
-        if user_message.lower == 'quit':
-            break
-        assistant = create_assistant()
+
+
+if 'messages' not in st.session_state:
+    st.session_state.messages=[]
+
+
+for message in st.session_state.messages:
+    with st.chat_message(message['role']):st.markdown(message['content'])
+
+
+
+thread = create_thread()
+assistant = create_assistant()
+if user_message := st.chat_input('Type in the data required'):
+    st.session_state.messages.append({'role':'user','content':user_message})
+    with st.chat_message('user'):
+        st.markdown(user_message)
+
+    with st.chat_message('assistant'):
+        message_placeholder = st.empty()
         run = send_message_and_run_assistant(thread,assistant,user_message)
         run, prompt, if_send_email = poll_run_status(thread,run)
 
         resp = display_final_response(thread,run,prompt,if_send_email)
+        message_placeholder.markdown(resp)
+    st.session_state.messages.append({'role':'assistant','content':resp})
 
 
 
