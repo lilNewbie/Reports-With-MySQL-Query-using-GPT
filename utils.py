@@ -235,13 +235,14 @@ def display_final_response(thread,run,prompt,if_send_email):
     with open('jsons/messages.json','w') as f:
         messages_json = messages.model_dump()
         json.dump(messages_json,f,indent=4)
-
+    op_string = ""
     for msg in messages.data:
         for content in msg.content:
             if hasattr(content, 'image_file'):
                 continue
-            if hasattr(content, 'text'):
-                print(f"{msg.role.capitalize()}: {content.text.value}")
+            if hasattr(content, 'text'):        
+                op_string = f"{msg.role.capitalize()}: {content.text.value}"
+                print(op_string)
 
     updated_messages = []
 
@@ -254,6 +255,7 @@ def display_final_response(thread,run,prompt,if_send_email):
                 if content_part.type == 'text':
                     annotations = content_part.text.annotations
                     text_value = content_part.text.value
+                    op_string = text_value
                     if annotations!=[]:
                         for index, annotation in enumerate(annotations):
                             text_value = text_value.replace(annotation.text, f' [{index}]')
@@ -277,7 +279,7 @@ def display_final_response(thread,run,prompt,if_send_email):
                     image_counter += 1
 
             updated_messages.append(message)
-
+    op_string = 'The graph'
     if if_send_email:
         imgs = load_imgs('charts')
         prompt['Attachments'] = []
@@ -289,8 +291,10 @@ def display_final_response(thread,run,prompt,if_send_email):
                 'content':imgs[i]
             }
             prompt['Attachments'].append(img_dict)
-        print(send_email(prompt))
-    return updated_messages
+        # print(send_email(prompt))
+        op_string = send_email(prompt)
+        image_counter = -1
+    return op_string, image_counter
 
 
 if 'messages' not in st.session_state:
@@ -314,9 +318,13 @@ if user_message := st.chat_input('Type in the data required'):
         run = send_message_and_run_assistant(thread,assistant,user_message)
         run, prompt, if_send_email = poll_run_status(thread,run)
 
-        resp = display_final_response(thread,run,prompt,if_send_email)
+        resp, img = display_final_response(thread,run,prompt,if_send_email)
         message_placeholder.markdown(resp)
+        if img!=-1:
+            st.image(f'charts/chart{img-1}.png','')
     st.session_state.messages.append({'role':'assistant','content':resp})
+
+    # Plot the graphs for the total frequencies of all the moods and save the image
 
 
 

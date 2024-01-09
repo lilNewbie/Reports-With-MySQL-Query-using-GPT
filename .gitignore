@@ -7,3 +7,4 @@
 .vs/
 __pycache__/
 myvenv/
+/assistant_id.txt
