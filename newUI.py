@@ -20,7 +20,6 @@ from secrets2 import get_keys
 #st.sidebar.markdown('Sample Prompt')
 #st.sidebar.markdown('"Send an email from x to y with the subject as test and content of the email explaining the same"')
 
-#Send an email from alan.learning.acc@gmail.com to alan.learning.acc2@gmail.com with the Subject as "The Fall of Rome" and the Content explaining it in two sentences. Sign off as "The Emperor".
 
 #mailjet_api_key = st.secrets['MAILJET_API_KEY']
 #mailjet_api_secret = st.secrets['MAILJET_API_SECRET']
