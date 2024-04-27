@@ -1,5 +1,3 @@
-import email
-from urllib import response
 import time
 import json
 from openai import OpenAI
@@ -139,9 +137,6 @@ def create_assistant():
     print(f'Assistant with id {assistant_id} retrieved.')
 
     return assistant
-
-
-
 
 
 
@@ -302,17 +297,22 @@ if 'messages' not in st.session_state:
 
 
 for message in st.session_state.messages:
-    with st.chat_message(message['role']):st.markdown(message['content'])
+    with st.chat_message(message['role']):
+        st.markdown(message['content'])
+        if message['role']=='assistant':
+            if message['image']!=-1:
+                st.image(message['image'],'')
 
 
 
 thread = create_thread()
 assistant = create_assistant()
 if user_message := st.chat_input('Type in the data required'):
-    st.session_state.messages.append({'role':'user','content':user_message})
     with st.chat_message('user'):
         st.markdown(user_message)
-
+    st.session_state.messages.append({'role':'user','content':user_message})
+    
+    img = -1
     with st.chat_message('assistant'):
         message_placeholder = st.empty()
         run = send_message_and_run_assistant(thread,assistant,user_message)
@@ -320,9 +320,9 @@ if user_message := st.chat_input('Type in the data required'):
 
         resp, img = display_final_response(thread,run,prompt,if_send_email)
         message_placeholder.markdown(resp)
-        if img!=-1:
-            st.image(f'charts/chart{img-1}.png','')
-    st.session_state.messages.append({'role':'assistant','content':resp})
+    st.session_state.messages.append({'role':'assistant',
+                                    'content':resp,
+                                    'image':f'charts/chart{img-1}.png' if img!=-1 else ''})
 
     # Plot the graphs for the total frequencies of all the moods and save the image
 

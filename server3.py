@@ -1,17 +1,8 @@
-from concurrent.futures import thread
-from email.mime import image
-import os
-from pydoc import cli
-import re
-from openai import OpenAI, AzureOpenAI
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 import json
-import requests
 import mysql.connector
-from secrets2 import get_keys
-import time
 
-db_pwd="KichuAchu123!"
+db_pwd="your-db-pwd"
 #load my database
 mydb = mysql.connector.connect(
     host="localhost",
