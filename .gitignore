@@ -9,3 +9,4 @@ __pycache__/
 myvenv/
 /assistant_id.txt
 server2.py
+/jsons
