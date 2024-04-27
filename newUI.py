@@ -53,22 +53,7 @@ def create_run_and_thread(messages):
                 )
     return run, thread
 
-# def check_poll(run,thread):
-    # while True:
-        # run = client.beta.threads.runs.retrieve(run_id=run.id, thread_id=thread.id)
-        # if run.status == "completed":
-        #     messages = client.beta.threads.messages.list(thread_id=thread.id)
-        #     print(messages)
-        #     # image_file_id = messages.data[0].content[0].image_file.file_id
-        #     content_description = messages.data[0].content[0].text.value
-        #     message_placeholder.markdown(content_description)
-        #     # print(image_file_id)
-        #     # raw_response = client.files.with_raw_response.content(file_id=image_file_id)
 
-        #     # client.files.delete(image_file_id)
-        #     # with open(content_description, "wb") as f:
-        #     #     f.write(raw_response.content)
-        #     #     print(content_description)
 def check_poll(run,thread):
     while True:
         run = client.beta.threads.runs.retrieve(run_id=run.id, thread_id=thread.id)
@@ -81,29 +66,6 @@ def check_poll(run,thread):
 
         time.sleep(2)
 
-
-
-# def chat_completion_request(messages, tools=None, tool_choice=None, model=GPT_MODEL):
-#     headers = {
-#         "Content-Type": "application/json",
-#         "Authorization": "Bearer " + st.secrets['OPENAI_API_KEY'],
-#     }
-#     json_data = {"model": model, "messages": messages}
-#     if tools is not None:
-#         json_data.update({"tools": tools})
-#     if tool_choice is not None:
-#         json_data.update({"tool_choice": tool_choice})
-#     try:
-#         response = requests.post(
-#             "https://api.openai.com/v1/chat/completions",
-#             headers=headers,
-#             json=json_data,
-#         )
-#         return response
-#     except Exception as e:
-#         print("Unable to generate ChatCompletion response")
-#         print(f"Exception: {e}")
-#         return e
 
 def send_sql_query(sql_query):
     json_data = {"message": sql_query}
@@ -194,22 +156,6 @@ def get_function_called(prompt):
             op = send_sql_query(arguments['sql_query'])
 
 
-
-# def converter(em):
-#     em_dict = {}
-#     names = ['FromEmail','FromName','Subject','Text-part','Recipients']
-#     for i in range(0,len(em)-1):
-#         s = em[i].split(':')
-#         key = names[i]
-#         value = s[1][2:-2]
-#         em_dict[key] = value
-
-#     s = em[len(em)-1].split(':')
-#     key = names[len(em)-1]
-#     value = s[1][2:-1]
-#     em_dict[key] = [{'Email':value}]
-#     return em_dict
-
 #code to load previous messages if any
 if 'openai_model' not in st.session_state:
     st.session_state['openai_model']="gpt-3.5-turbo"
@@ -220,9 +166,6 @@ if 'messages' not in st.session_state:
 
 for message in st.session_state.messages:
     with st.chat_message(message['role']):
-        # cont = message['content']
-        # if message['role']=="assistant":
-            # cont = 'Email has been sent from '+ cont['FromEmail'] + ' to ' + cont['Recipients'][0]['Email']  + '  \n' + 'Check inbox.  \n' + 'Content sent:  \n'+ cont['Text-part']
         st.markdown(message['content'])
 
 
@@ -233,19 +176,7 @@ if prompt := st.chat_input('Type in the data required'):
     em = ""      
     with st.chat_message('assistant'):
         message_placeholder = st.empty()
-        #full_response = sql_query_request(prompt)
         full_response = get_function_called(prompt)
-        # email_format = full_response.json()['choices'][0]['message']['tool_calls'][0]['function']['arguments']
-
-        # em = email_format.split('\n')
-        # em = em[1:-1]
-        # em = converter(em)
-
-        # result = mailjet.send.create(data=em)
-        
-        
-        # cont = 'Email has been sent from '+ em['FromEmail'] + ' to ' + em['Recipients'][0]['Email']  + '  \n' + 'Check inbox.  \n' + 'Content sent:  \n'+ em['Text-part']
-        
         message_placeholder.markdown(full_response)
 
     st.session_state.messages.append({'role':'assistant','content':em})

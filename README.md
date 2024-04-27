@@ -52,7 +52,7 @@ openai_secret_key = st.sidebar.text_input("Enter OpenAI's API key", '', type='pa
 Run the web-app
 
 ```bash
-  streamlit run func.py
+  streamlit run newUI.py
 ```
 
 
@@ -64,7 +64,7 @@ Add your own Assistant ID to a assistant_id.txt file
 
 Add your own Assistant ID to a assistant_id.txt file 
 
-## Sample email sent
+## Sample email sent by the chatbot
 ![ss_report_gpt](https://github.com/lilNewbie/Reports-With-MySQL-Query-using-GPT/assets/90834922/6354554d-179e-4113-a78a-c5916befe11e)
 
 

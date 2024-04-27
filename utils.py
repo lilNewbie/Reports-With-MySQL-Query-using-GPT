@@ -11,21 +11,6 @@ import pybase64
 from mailjet_rest import Client
 import streamlit as st
 
-# st.sidebar.header('Required API Keys')
-
-# Add input widgets to the sidebar for three strings
-# mailjet_api_key = st.sidebar.text_input("Enter MailJet API's public key", '', type='password')
-# mailjet_api_secret = st.sidebar.text_input("Enter MailJet API's private key", '', type='password')
-# openai_secret_key = st.sidebar.text_input("Enter OpenAI's API key", '', type='password')
-
-#st.sidebar.markdown('Sample Prompt')
-#st.sidebar.markdown('"Send an email from x to y with the subject as test and content of the email explaining the same"')
-
-#Send an email from alan.learning.acc@gmail.com to alan.learning.acc2@gmail.com with the Subject as "The Fall of Rome" and the Content explaining it in two sentences. Sign off as "The Emperor".
-
-#mailjet_api_key = st.secrets['MAILJET_API_KEY']
-#mailjet_api_secret = st.secrets['MAILJET_API_SECRET']
-
 openai_secret_key, MAILJET_API_KEY, MAILJET_API_SECRET, db_pwd = get_keys()
 client = OpenAI(api_key=openai_secret_key)
 mailjet = Client(auth=(MAILJET_API_KEY, MAILJET_API_SECRET))
