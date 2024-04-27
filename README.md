@@ -57,5 +57,9 @@ Run the web-app
 
 
 ## Usage/Examples
+Add your own Assistant ID to a assistant_id.txt file 
+
+## Sample email sent
+![ss_report_gpt](https://github.com/lilNewbie/Reports-With-MySQL-Query-using-GPT/assets/90834922/6354554d-179e-4113-a78a-c5916befe11e)
 
 
